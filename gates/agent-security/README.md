@@ -2,6 +2,35 @@
 
 Tools for monitoring, constraining, and securing autonomous AI agents in production. Mapped to the OWASP Top 10 for Agentic Applications (December 2025).
 
+## Credential Hygiene for Agent Environments
+
+Agents have shell access. If credentials are on disk, the agent can read them. OpenAI's misalignment monitoring found agents extracting encrypted credentials from macOS keychains. Long-lived AWS keys in `.env` files are worse — no encryption, no audit trail, no expiry.
+
+**Rules:**
+
+1. **Never mount long-lived credentials into agent environments.** No `.env` files with API keys. No `~/.aws/credentials` with permanent access keys. If the agent can `cat` it, assume it will.
+
+2. **Use short-lived credentials passed at startup.** AWS STS `AssumeRole` with 15-minute TTL. The agent's session dies before the credential does. If compromised, the blast radius is bounded by the TTL.
+
+3. **Use IAM roles for compute, not credentials.** EC2 instance profiles, ECS task roles, Lambda execution roles. The credential is never on disk — it lives in the instance metadata service and rotates automatically.
+
+4. **For local development:** AWS SSO (`aws sso login`) generates temporary credentials that expire. If an agent extracts them, they are worthless within hours.
+
+5. **Use Secrets Manager or Vault for runtime secrets.** Pull at startup into memory, don't persist to disk. Rotate on a schedule shorter than your agent's maximum session length.
+
+| Approach | TTL | Agent can extract? | Blast radius |
+|----------|-----|-------------------|-------------|
+| `.env` with long-lived keys | Indefinite | Yes, trivially | Full account access until revoked |
+| `~/.aws/credentials` | Indefinite | Yes, trivially | Full account access until revoked |
+| AWS SSO session | 1-12 hours | Yes, but expires | Bounded by session TTL |
+| STS AssumeRole | 15 min - 12 hours | Yes, but expires | Bounded by role policy + TTL |
+| EC2/ECS IAM role | Auto-rotated | Only via metadata service | Bounded by role policy |
+| Secrets Manager + memory-only | N/A | Only if agent reads process memory | Minimal |
+
+**The principle:** the credential's lifetime should be shorter than the agent's session. If the agent runs for 30 minutes, the credential should expire in 15.
+
+---
+
 ## Sandboxing & Isolation (OWASP #1 Excessive Agency, #2 Uncontrolled Autonomy)
 
 | Tool | What it does | OSS | URL |
