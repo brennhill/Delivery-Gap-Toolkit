@@ -37,6 +37,36 @@ tools/                                Worked examples
 
 ---
 
+## The Spec Template: Why It's Ordered This Way
+
+The [Context-Anchor Spec](templates/specs/01-one-page-spec-template.md) has 12 sections split into two blocks:
+
+**👤 Human context (sections 1–4)** comes first: who this is for, what success looks like, who owns it, how to roll back. These set the stage for reviewers and stakeholders. They are not scored by quality tools — humans judge whether a feature succeeded in the market, not machines.
+
+**🤖 Machine execution (sections 5–12)** comes last: model anchors, entities, scope, constraints, style rules, error contracts, edge cases, acceptance criteria. These are the sections AI agents consume during code generation and that [upfront](https://github.com/brennhill/upfront) scores for quality.
+
+The ordering is intentional. LLMs exhibit **recency bias** — content at the end of the context window is weighted more heavily than content at the beginning. By placing the machine-executable sections last, the acceptance criteria, error contracts, and edge cases sit in the strongest position in the AI's attention when it starts generating code.
+
+The sections themselves were derived from a gap analysis across three spec formats:
+- **[Spec Kit](https://github.com/github/spec-kit)** (GitHub) — contributed Edge Cases, Key Entities, Success Criteria
+- **[Kiro](https://kiro.dev)** (AWS) — contributed Glossary/Entity definitions, Error Handling strategy
+- **Delivery Gap** (original) — contributed Model Anchors, Scope Non-goals, Contract/Invariant/Policy checks, Rollback Plan
+
+Each machine section prevents a specific class of AI hallucination:
+
+| Section | Without it, the AI will... |
+|---------|---------------------------|
+| Model Anchors | Invent its own architecture instead of following existing patterns |
+| Key Entities | Make up names and relationships that don't match the domain |
+| Scope Boundaries | Build features you explicitly excluded |
+| Constraints | Violate security, SLA, or compliance requirements |
+| Style/Architecture Rules | Ignore module boundaries and conventions |
+| Error Contract | Invent a different error shape in every function |
+| Edge Cases | Ignore boundary conditions and failure paths |
+| Acceptance Criteria | Produce code that can't be deterministically verified |
+
+---
+
 ## Quick Start
 
 ### "I need to measure whether AI is helping or hurting"

@@ -25,12 +25,16 @@ Eval quality measures whether automated gates are absorbing verification load an
 
 | Metric | What it tells you | Script |
 |--------|------------------|--------|
-| **Machine catch rate** | % of defects caught by gates vs humans | `eval-quality/machine-catch-rate.py` |
+| **Machine catch rate** | % of changes that pass gates, review, and survive 14 days | `eval-quality/machine-catch-rate.py` |
 | **Reviewer-minutes per accepted change** | Whether human review load is scaling | `eval-quality/reviewer-minutes.py` |
+| **Review cycle count** | Pre-merge friction per PR (review rounds before merge) | `eval-quality/review-cycles.py` |
+| **Time-to-merge** | How long changes spend in the verification pipeline | `eval-quality/time-to-merge.py` |
 | **Defect escape rate** | % of bugs reaching production | `eval-quality/defect-escape-rate.py` |
 | **Change fail rate** | % of deploys causing failure (DORA) | `eval-quality/change-fail-rate.py` |
 
 Research basis: SmartBear/Cisco (2,500 reviews, 3.2M lines) — review effectiveness collapses after 400 lines and 60 minutes. CodeRabbit found AI-authored code carries 1.7x more issues. DORA established change fail rate as a core delivery metric.
+
+**Important:** Bucket by PR size when comparing spec'd vs unspec'd metrics. Without size bucketing, the comparison is confounded by complexity — small tasks naturally rework less regardless of spec status. Use `gh pr view --json additions,deletions` and split into small (<100 lines), medium (100-500), and large (500+).
 
 ### Cost — "How much does each trusted change actually cost?"
 
@@ -63,6 +67,10 @@ python spec-quality/spec-coverage.py --repo owner/repo --json spec.json
 
 # 3. Measure machine catch rate
 python eval-quality/machine-catch-rate.py --repo owner/repo --json catches.json
+
+# 3b. Measure pre-merge friction (zero-instrumentation, GitHub API only)
+python eval-quality/review-cycles.py --repo owner/repo --json cycles.json
+python eval-quality/time-to-merge.py --repo owner/repo --json ttm.json
 
 # 4. Calculate cost per accepted change with HTML report
 python cost-per-accepted-change/cost-calculator.py \

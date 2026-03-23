@@ -2,18 +2,27 @@
 
 Eval quality answers one question: are defects being caught early enough, and are machines absorbing enough of the verification load?
 
-## The four eval metrics
+## The six eval metrics
 
 ### Machine catch rate
 
-`machine_catches / (machine_catches + human_catches)`
+`changes_that_passed_gates_and_review_untouched_and_survived_14_days / total_changes`
 
-Target: above 50%. If humans are catching more than machines, your gates are underbuilt and your most expensive people are doing a machine's job.
+This measures end-to-end pipeline trustworthiness — what percentage of changes your automated pipeline gets right without any human intervention. It has two complement metrics:
+
+- **Human save rate** = changes that humans modified during review before merge / total changes
+- **Escape rate** = changes that passed both gates AND human review but were rolled back within 14 days / total changes
+
+All three sum to 100%. If machine catch rate is 85%, human save rate is 10%, and escape rate is 5%, your pipeline is trustworthy but your gates are missing 15% of problems (10% caught by reviewers, 5% caught by nobody).
+
+Target: above 80%. Below 70% means your pipeline is producing more rework than it should — either gates are too weak or specs are too vague. Below 50% means the pipeline is not trustworthy and human review is doing most of the verification work.
 
 How to improve:
 - Add a gate tier you're missing (see the gate tooling by language)
 - Make warning-only gates blocking
-- Add AI code review (CodeRabbit, Anthropic Code Review, or the multi-pass review script)
+- Improve spec quality (vague specs produce code that passes gates but fails in review)
+- Add AI code review (CodeRabbit, Anthropic Code Review, or the multi-pass review skill)
+- Track the escape rate separately — if human save rate is high but escape rate is low, your reviewers are compensating for weak gates
 
 ### Reviewer-minutes per accepted change
 
@@ -44,6 +53,40 @@ DORA benchmarks:
 - High: 5-10%
 - Medium: 10-15%
 - Low: > 15%
+
+### Review cycle count
+
+`review_rounds_before_merge`
+
+Count distinct review rounds per PR. A round is a review submission (approved, changes requested, or commented). Available from the GitHub API with zero instrumentation: `gh pr view --json reviews`.
+
+This is the clearest pre-merge signal of spec quality. Well-specced changes pass review in fewer rounds because the intent is unambiguous. If review cycle count is rising while spec coverage is flat, your specs are not detailed enough for reviewers (or agents) to evaluate against.
+
+Target: median of 1-2 rounds. Above 3 consistently means specs are too vague or the review process has unclear standards.
+
+### Time-to-merge
+
+`merged_at - created_at`
+
+How long changes spend in the verification pipeline. Available from the GitHub API: `gh pr view --json createdAt,mergedAt`. Report as median per period, not mean, to avoid skew from long-lived PRs.
+
+Read alongside defect escape rate:
+- Shorter time-to-merge + stable escape rate = pipeline getting more efficient
+- Shorter time-to-merge + rising escape rate = pipeline getting sloppy
+- Longer time-to-merge + stable escape rate = review bottleneck building
+
+## Step 0: Error analysis before gate building
+
+Before adding gates, look at what actually fails. Most teams skip this and build gates based on what they *think* will go wrong. The result: gates that catch theoretical problems while real failures slip through.
+
+1. **Collect 50-100 real outputs** — random sample from the last 1-2 weeks, not cherry-picked
+2. **Categorize failures manually** — let categories emerge from the data, don't use predefined lists
+3. **Prioritize by frequency × severity** — your top 3-5 categories become your first gates
+4. **Build one eval per failure mode** — targeted pass/fail checks, not generic quality scores
+
+See [tools/eval-examples/error-analysis-workflow/](../../tools/eval-examples/error-analysis-workflow/) for runnable scripts that automate the collection and summarization steps.
+
+Generic metrics (ROUGE, BERTScore, "similarity score") are the eval equivalent of measuring PR volume instead of accepted outcomes. They optimize a proxy, not the thing you care about. Domain-specific evals targeting your actual failure modes are what move the machine catch rate.
 
 ## Building gates that actually work
 

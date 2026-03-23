@@ -63,6 +63,15 @@ Agents have shell access. If credentials are on disk, the agent can read them. O
 | LiteLLM | Unified proxy for 100+ LLM providers. Cost tracking, rate limiting, fallbacks, load balancing. | Yes (MIT) | https://github.com/BerriAI/litellm |
 | Galileo | LLM monitoring with hallucination detection | No | https://www.rungalileo.io |
 
+## Red-Teaming & Adversarial Testing (OWASP #4 Prompt Injection, #1 Excessive Agency)
+
+| Tool | What it does | OSS | URL |
+|------|-------------|-----|-----|
+| promptfoo | LLM eval and red-teaming framework. Generates adversarial attacks tailored to your app: prompt injections, jailbreaks, data leaks, PII exposure, business rule violations. 50+ vulnerability types. YAML-configured test suites that run in CI. Also tests RAG pipelines, agents, and guardrails. | Yes (MIT) | https://promptfoo.dev |
+| Garak | LLM vulnerability scanner. Probes for prompt injection, data extraction, and hallucination. | Yes (Apache 2.0) | https://github.com/leondz/garak |
+
+Red-teaming is a behavioral gate (Tier 4) that tests what the model *does*, not what the code *looks like*. Run adversarial tests against your LLM-powered features the same way you run unit tests against your code. If you're building anything that takes user input and passes it to a model, these tools catch the attacks your unit tests can't.
+
 ## Supply Chain & Integration Security (OWASP #7 Vulnerable Integration Points, #9 Insecure Communication)
 
 | Tool | What it does | OSS | URL |

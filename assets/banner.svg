@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320">
+
+  <!-- Black background -->
+  <rect width="1280" height="320" fill="#080808"/>
+
+  <!-- Logo mark (V18 rings) — left side -->
+  <g transform="translate(100, 160) scale(1.4)">
+    <!-- Outer ring: Navy -->
+    <path d="M 16.9 -36.3 A 40 40 0 1 0 36.3 -16.9" fill="none" stroke="#1D3557" stroke-width="7" stroke-linecap="round"/>
+    <!-- Middle ring: Teal -->
+    <path d="M 11.8 -25.4 A 28 28 0 1 0 25.4 -11.8" fill="none" stroke="#2BA99A" stroke-width="6" stroke-linecap="round"/>
+    <!-- Inner ring: Gold -->
+    <path d="M 6.76 -14.5 A 16 16 0 1 0 14.5 -6.76" fill="none" stroke="#C9962A" stroke-width="5" stroke-linecap="round"/>
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="3" fill="#1D3557"/>
+  </g>
+
+  <!-- THE DELIVERY — cream -->
+  <text x="220" y="120"
+    font-family="'Helvetica Neue', Arial, sans-serif"
+    font-size="64" font-weight="900"
+    fill="#F5F0E8" opacity="0.92" letter-spacing="-3">THE DELIVERY</text>
+
+  <!-- GAP — gold -->
+  <text x="220" y="210"
+    font-family="'Helvetica Neue', Arial, sans-serif"
+    font-size="110" font-weight="900"
+    fill="#C9962A" opacity="0.85" letter-spacing="-6">GAP</text>
+
+  <!-- Toolkit label — right of GAP -->
+  <text x="530" y="210"
+    font-family="'Helvetica Neue', Arial, sans-serif"
+    font-size="110" font-weight="900"
+    fill="#F5F0E8" opacity="0.25" letter-spacing="-6">TOOLKIT</text>
+
+  <!-- Teal rule -->
+  <rect x="220" y="230" width="900" height="2" fill="#2BA99A" opacity="0.8"/>
+
+  <!-- Subtitle band -->
+  <rect x="220" y="240" width="900" height="36" fill="#1D3557"/>
+
+  <!-- Subtitle text -->
+  <text x="670" y="264" text-anchor="middle"
+    font-family="'Helvetica Neue', Arial, sans-serif"
+    font-size="12" font-weight="700"
+    fill="#F5F0E8" letter-spacing="2.5" opacity="0.95">METRICS  |  QUALITY GATES  |  TEMPLATES  |  AGENT MONITORING  |  COST CONTROLS</text>
+
+  <!-- Tagline -->
+  <text x="220" y="304"
+    font-family="'Helvetica Neue', Arial, sans-serif"
+    font-size="14" font-weight="400"
+    fill="#F5F0E8" opacity="0.5" letter-spacing="1">Companion toolkit for The Delivery Gap: Speed and Certainty in the Age of AI</text>
+
+</svg>
