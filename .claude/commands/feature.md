@@ -98,13 +98,31 @@ Once the mechanism is sound, get specific:
 - What data flows at each step?
 - What does the user see in each state?
 
-### Level 4: Error cases and edges
+### Level 4: Concurrency and shared state
+
+Once states are clear, stress-test them under concurrency. This is where most production bugs hide — the states look right when one thing happens at a time, but break when two things happen at once.
+
+Ask: "What happens when two of these run at the same time? Walk me through it."
+
+Wait for their answer. Then probe what they missed. Common concurrency gaps (use these to decorate, not to lead):
+- **Two users hit the same resource simultaneously** — who wins? Is the loser's work lost or merged?
+- **Read-modify-write races** — can stale data overwrite fresh data? (Classic: two users edit the same record, last write wins silently)
+- **Queue/worker ordering** — if events arrive out of order, does the system handle it or corrupt state?
+- **Partial completion** — if step 2 of 3 fails, is step 1 rolled back or is state now inconsistent?
+- **Retry + idempotency** — if a request is retried (timeout, network blip), does the action happen twice? (Double charges, duplicate records, double-sent emails)
+- **Lock contention and deadlocks** — if multiple resources need to be locked, is the order consistent?
+- **Cache invalidation races** — can a cache serve stale data after a write completes?
+
+Do not accept "that won't happen" without a reason. Do not accept "we'll add a lock" without understanding what the lock protects and what happens to callers who are blocked.
+
+If the feature genuinely has no shared mutable state (pure function, read-only, single-user), say so explicitly and move on. But verify — most features touch shared state somewhere.
+
+### Level 5: Error cases and edges
 
 Ask: "What breaks? Walk me through every way this could fail."
 
 Wait for the user's answer. Let them generate their own failure list first. Then — and only then — fill the gaps they missed. Common gaps users overlook (use these to decorate, not to lead):
 - Dependencies down or slow
-- Concurrent requests
 - User does something unexpected
 - User abandons mid-action (closes browser, loses connection)
 - Boundary values (empty, null, max-size, zero, negative)
@@ -116,6 +134,7 @@ When the behavioral spec is solid — stories connect to the problem, mechanism 
 - The mechanism and why we believe it will work
 - Assumptions challenged and what held up
 - Key states and transitions
+- Concurrency risks identified and mitigations decided
 - Error cases covered and any risks accepted
 - Anything considered and rejected during this phase
 
@@ -268,12 +287,16 @@ Write the complete spec to disk. Populate every section from the conversation �
 ### States and Transitions
 [all states, what moves between them, what the user sees in each]
 
+### Concurrency
+[what happens under concurrent access, race conditions identified, mitigations decided, or "no shared mutable state" with justification]
+
 ### Error Cases
-[dependency failures, concurrent requests, unexpected user behavior, edge cases]
+[dependency failures, unexpected user behavior, edge cases]
 
 ### Thinking Record: Behavioral Spec
 **Decided:** [the behavioral design — what the feature does]
 **Reasoning:** [why this mechanism, why these states, why these error handling choices]
+**Concurrency risks:** [races identified, mitigations chosen, or why concurrency doesn't apply]
 **Considered and rejected:** [alternative approaches, mechanisms that didn't hold up]
 **Assumptions challenged:** [what was stress-tested and what survived]
 **Risks accepted:** [failure modes we know about but are proceeding with]

@@ -38,7 +38,97 @@ Then answer:
 - Are there existing tests to extend or will new test files be needed?
 - Are there integration points where changes in one file affect another?
 
-### 3. Propose phases
+### 3. Architectural deep-dive
+
+Before proposing phases, walk through the architecture at three levels. Each level must be confirmed by the user before proceeding to the next. Wrong assumptions at any level will poison every phase.
+
+**This is a conversation, not a presentation.** Ask questions, challenge answers, push for specifics. Do not accept vague descriptions — if the user says "it's a standard REST API," ask what "standard" means in this codebase. Do they use middleware? How is auth handled? What's the error response shape? Is there a router or is it handler-per-file?
+
+#### Level 1: System architecture
+
+Present your understanding of the overall system. Then ask the user to confirm or correct.
+
+- **What are the major components?** Services, databases, queues, caches, external APIs. Draw the boundaries.
+- **How do they communicate?** HTTP, gRPC, message bus, shared database, file system, stdin/stdout. What are the protocols and contracts?
+- **What are the invariants?** What must ALWAYS be true about this system regardless of what changes? (e.g., "every write must be durable before acknowledging," "auth must be checked on every request," "no data crosses tenant boundaries")
+- **What are the deployment boundaries?** What ships together, what ships independently? Does this feature cross a deployment boundary?
+
+Challenge assumptions: "You said these two services communicate over HTTP — is that synchronous? What happens when the downstream service is slow? Is there a timeout? A circuit breaker? Or does the caller just hang?"
+
+Ask: "Here's how I understand the system. Does this match reality?"
+
+Wait for confirmation before proceeding.
+
+#### Level 2: Subsystem architecture
+
+Zoom into the specific subsystems this feature touches. Read the actual code — do not guess.
+
+- **What modules, packages, or layers exist in this area?** What does each one own? Where are the boundaries between them?
+- **What patterns does the existing code follow?** Repository pattern? Service layer? Handlers calling business logic calling data access? Or is it a ball of mud? Be honest about what you find.
+- **What are the data models?** Not just schemas — what are the entities, what are their relationships, what are the lifecycle states? What constraints exist at the data level (unique keys, foreign keys, check constraints, soft deletes)?
+- **What interfaces exist between subsystems?** Are they clean (well-defined types, clear contracts) or leaky (passing raw maps, stringly-typed, implicit assumptions)?
+- **What are the subsystem invariants?** What must be true within this subsystem? (e.g., "an event's sequence number is always monotonically increasing," "a queue entry is either pending or flushed, never both," "config is loaded once at startup and never mutated")
+
+Challenge what you find: "This module has three different error handling patterns — which one is intentional? Should we consolidate before building on top, or is there a reason they diverge?"
+
+Ask: "Here's how the subsystems work. Does this match what you intended, or has it drifted?"
+
+Wait for confirmation before proceeding.
+
+#### Level 3: Design patterns and connections
+
+Now get specific about how the pieces connect and what patterns to use.
+
+- **What design patterns does the codebase use?** Not textbook names — actual patterns. "Handlers validate input, call a service function, and return a response. Service functions are pure logic with injected dependencies. Data access is behind interfaces." Or: "Everything is in one file and there are no patterns." Both are useful answers.
+- **What patterns should this feature follow?** Match existing conventions unless there's a reason to diverge. If you recommend diverging, say why explicitly.
+- **What are the connection points?** For each place this feature touches existing code, what is the exact interface? Function signatures, types, error types, return values. Not abstract — concrete.
+- **What are the edge behaviors at each connection?** What happens at each boundary when inputs are empty, nil, maximum size, malformed? What happens when the connection fails? What does the caller see?
+- **Concurrency model:** What is shared mutable state? What synchronization exists? What ordering guarantees are needed? If the spec identified concurrency concerns, how does the architecture address each one specifically?
+- **Error propagation:** How do errors flow through the system? Are they wrapped? Typed? Do they carry context? Is there a consistent pattern or does every module do it differently?
+
+Challenge for well-understood behaviors: "You're building a queue with flush semantics — this is a solved problem. Are you using write-ahead log semantics? Exactly-once delivery? At-least-once? What's the durability guarantee? Have you looked at how existing tools (WAL, NATS, etc.) handle this, or are you inventing from scratch?"
+
+Push for specifics: "You said the config is loaded from a JSON file. What happens if the file doesn't exist? What if it's malformed JSON? What if it has valid JSON but missing required fields? What are the defaults? Where are they documented?"
+
+Ask: "Here's how I think the pieces connect. Are the patterns right? Am I missing any invariants?"
+
+Wait for confirmation before proceeding.
+
+#### Persisting the architecture
+
+Architecture is project knowledge, not per-feature knowledge. After all three levels are confirmed, write or update `specs/ARCHITECTURE.md`:
+
+```markdown
+# Architecture
+
+> Last reviewed: [date] during `/plan` for [feature-name]
+
+## System Context
+[major components, communication protocols, system-level invariants, deployment boundaries]
+
+## Subsystem Map
+[modules and boundaries, data models and relationships, subsystem invariants, interface quality]
+
+## Design Patterns and Connections
+[conventions to follow, connection points with concrete interfaces, edge behaviors, error propagation]
+
+## Concurrency Model
+[shared mutable state, synchronization mechanisms, ordering guarantees — or "N/A: no shared mutable state"]
+
+## Test Strategy
+[unit/integration/e2e split, existing test patterns, mock vs real dependencies]
+
+## Risk Areas
+[weakest integration points, fragile existing code, inconsistent patterns, where AI will get it wrong]
+```
+
+**If `specs/ARCHITECTURE.md` already exists:** Read it first. Review it against the current codebase — does it still match reality? Update anything that has drifted. Add new subsystems or patterns this feature revealed. Update the "Last reviewed" date. Present changes to the user for confirmation.
+
+**If it doesn't exist:** Create it from the conversation. This becomes the shared reference for every future `/plan` and `/feature` run.
+
+The plan file references the architecture doc rather than duplicating it.
+
+### 4. Propose phases
 
 Break the work into phases. Each phase should be:
 - **~400 lines or less** — based on your estimate of actual change size, not a guess
@@ -51,7 +141,7 @@ For each phase, define:
 2. **Automated verification** — exact commands to run (e.g., `make test`, `npm run typecheck`, specific test files)
 3. **Manual verification** — what a human checks before the next phase begins
 
-### 4. Present for review
+### 5. Present for review
 
 Present the plan to the user. For each phase, explain:
 - What it does and why it's in this order
@@ -62,7 +152,7 @@ Ask: "Does this phasing make sense? Should I adjust the order, split any phase f
 
 Iterate based on feedback.
 
-### 5. Write to disk
+### 6. Write to disk
 
 Once approved, write the plan as a separate file at `specs/[feature-name]-plan.md`:
 
@@ -71,6 +161,15 @@ Once approved, write the plan as a separate file at `specs/[feature-name]-plan.m
 
 > Generated by `/plan` on [date]. Review before implementation.
 > Spec: `specs/[feature-name].md`
+
+## Architecture
+
+See `specs/ARCHITECTURE.md` (reviewed [date]).
+
+**Feature-specific architectural notes:**
+[anything specific to this feature that doesn't belong in the shared architecture doc — e.g., "this feature adds a new subsystem (upfront/internal/queue/) not yet in ARCHITECTURE.md" or "N/A — no new architectural decisions"]
+
+---
 
 ### Phase 1: [descriptive name]
 **Files:** [list of files that change]
